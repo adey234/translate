@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Language Translator</title>
+<style>
+  :root {
+    --bg: #f4f6fb;
+    --card: #ffffff;
+    --text: #1c2333;
+    --muted: #6b7386;
+    --border: #dfe3ee;
+    --accent: #3b5bdb;
+    --accent-hover: #2f4ac0;
+    --accent-soft: #e9edff;
+    --out-bg: #f8f9fd;
+    --danger: #c92a2a;
+    --danger-bg: #fff0f0;
+    --shadow: 0 8px 30px rgba(30, 45, 90, 0.08);
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151f;
+      --card: #1b2030;
+      --text: #e8ebf5;
+      --muted: #97a0b8;
+      --border: #2c3348;
+      --accent: #6c8cff;
+      --accent-hover: #86a0ff;
+      --accent-soft: #252c47;
+      --out-bg: #171b29;
+      --danger: #ff8787;
+      --danger-bg: #3a1f24;
+      --shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151f;
+    --card: #1b2030;
+    --text: #e8ebf5;
+    --muted: #97a0b8;
+    --border: #2c3348;
+    --accent: #6c8cff;
+    --accent-hover: #86a0ff;
+    --accent-soft: #252c47;
+    --out-bg: #171b29;
+    --danger: #ff8787;
+    --danger-bg: #3a1f24;
+    --shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  }
+
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Noto Sans SC", "Noto Sans Bengali", "Noto Sans Tamil", "Noto Sans Devanagari", Arial, sans-serif;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  .wrap {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 32px 16px 48px;
+  }
+  header { text-align: center; margin-bottom: 24px; }
+  header h1 { margin: 0 0 6px; font-size: 1.9rem; letter-spacing: -0.02em; }
+  header p { margin: 0; color: var(--muted); }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    padding: 18px;
+  }
+
+  .lang-bar {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .field label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  select {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 1rem;
+    color: var(--text);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    outline: none;
+  }
+  select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+  .swap {
+    margin-top: 18px;
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 1.15rem;
+    cursor: pointer;
+  }
+  .swap:hover { background: var(--accent); color: #fff; }
+  .swap:disabled { opacity: 0.4; cursor: not-allowed; background: var(--accent-soft); color: var(--accent); }
+
+  .panes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .pane { display: flex; flex-direction: column; }
+  .pane-head {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; min-height: 28px;
+  }
+  textarea, .output {
+    width: 100%;
+    min-height: 220px;
+    padding: 14px;
+    font: inherit;
+    font-size: 1.05rem;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--card);
+  }
+  textarea { resize: vertical; outline: none; }
+  .output {
+    background: var(--out-bg);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    overflow-y: auto;
+  }
+  .output.placeholder { color: var(--muted); }
+  .py {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border);
+    color: var(--accent);
+    font-size: 1rem;
+  }
+  .py[hidden] { display: none; }
+  .py-label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 2px;
+  }
+
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 16px; }
+  .btn {
+    padding: 11px 22px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    cursor: pointer;
+  }
+  .btn.primary { background: var(--accent); color: #fff; }
+  .btn.primary:hover { background: var(--accent-hover); }
+  .btn.primary:disabled { opacity: 0.6; cursor: wait; }
+  .btn.ghost { background: transparent; color: var(--text); border-color: var(--border); }
+  .btn.ghost:hover { background: var(--accent-soft); }
+  .btn.small { padding: 4px 10px; font-size: 0.8rem; font-weight: 500; }
+  .btn:disabled { cursor: not-allowed; }
+
+  .opt { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 0.9rem; margin-left: auto; cursor: pointer; }
+
+  .msg {
+    margin-top: 14px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: var(--danger-bg);
+    color: var(--danger);
+    font-size: 0.92rem;
+  }
+  .msg[hidden] { display: none; }
+
+  footer { text-align: center; color: var(--muted); font-size: 0.8rem; margin-top: 18px; }
+  kbd { padding: 1px 6px; border: 1px solid var(--border); border-radius: 5px; font-size: 0.75rem; }
+
+  @media (max-width: 680px) {
+    .panes { grid-template-columns: 1fr; }
+    .lang-bar { grid-template-columns: 1fr; }
+    .swap { margin: 0 auto; transform: rotate(90deg); }
+    textarea, .output { min-height: 150px; }
+    .opt { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🌐 Language Translator</h1>
+    <p>Type in English and get instant Chinese, German, Bengali and more.</p>
+  </header>
+
+  <main class="card">
+    <div class="lang-bar">
+      <div class="field">
+        <label for="srcLang">From</label>
+        <select id="srcLang"></select>
+      </div>
+      <button class="swap" id="swapBtn" type="button" title="Swap languages" aria-label="Swap languages">⇄</button>
+      <div class="field">
+        <label for="tgtLang">To</label>
+        <select id="tgtLang"></select>
+      </div>
+    </div>
+
+    <div class="panes">
+      <section class="pane">
+        <div class="pane-head">
+          <span>Your text</span>
+          <span id="counter">0 / 5000</span>
+        </div>
+        <textarea id="input" maxlength="5000" placeholder="Type or paste your text here..." aria-label="Text to translate"></textarea>
+      </section>
+      <section class="pane">
+        <div class="pane-head">
+          <span>Translation</span>
+          <button class="btn ghost small" id="copyBtn" type="button" disabled>Copy</button>
+        </div>
+        <div class="output placeholder" id="output" aria-live="polite"><div id="trText">Your translation will appear here.</div><div class="py" id="pyBox" hidden><span class="py-label" id="pyLabel">Pinyin</span><span id="pyText"></span></div></div>
+      </section>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" id="translateBtn" type="button">Translate</button>
+      <button class="btn ghost" id="stopBtn" type="button" hidden>Stop</button>
+      <button class="btn ghost" id="clearBtn" type="button">Clear</button>
+      <label class="opt"><input type="checkbox" id="pron" checked> Show pinyin (for Chinese)</label>
+    </div>
+
+    <div class="msg" id="msg" hidden role="alert"></div>
+  </main>
+
+  <footer>Tip: press <kbd>Ctrl</kbd> + <kbd>Enter</kbd> to translate quickly. Needs an internet connection.</footer>
+</div>
+
+<!-- Pinyin library (optional: the page still works if this fails to load) -->
+<script src="https://cdn.jsdelivr.net/npm/pinyin-pro@3/dist/index.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  // [name, label, MyMemory language code]
+  var LANGS = [
+    ["English", "English", "en"],
+    ["Chinese (Simplified)", "Chinese (Simplified) 简体中文", "zh-CN"],
+    ["Chinese (Traditional)", "Chinese (Traditional) 繁體中文", "zh-TW"],
+    ["German", "German (Deutsch)", "de"],
+    ["Bengali", "Bengali (বাংলা)", "bn"],
+    ["Hindi", "Hindi (हिन्दी)", "hi"],
+    ["Tamil", "Tamil (தமிழ்)", "ta"],
+    ["Telugu", "Telugu (తెలుగు)", "te"],
+    ["Marathi", "Marathi (मराठी)", "mr"],
+    ["Urdu", "Urdu (اردو)", "ur"],
+    ["Spanish", "Spanish (Español)", "es"],
+    ["French", "French (Français)", "fr"],
+    ["Italian", "Italian (Italiano)", "it"],
+    ["Portuguese", "Portuguese (Português)", "pt"],
+    ["Russian", "Russian (Русский)", "ru"],
+    ["Japanese", "Japanese (日本語)", "ja"],
+    ["Korean", "Korean (한국어)", "ko"],
+    ["Arabic", "Arabic (العربية)", "ar"],
+    ["Turkish", "Turkish (Türkçe)", "tr"],
+    ["Dutch", "Dutch (Nederlands)", "nl"],
+    ["Thai", "Thai (ไทย)", "th"],
+    ["Vietnamese", "Vietnamese (Tiếng Việt)", "vi"],
+    ["Indonesian", "Indonesian (Bahasa Indonesia)", "id"]
+  ];
+  var AUTO = "Auto-detect";
+  var CODE = {};
+  LANGS.forEach(function (l) { CODE[l[0]] = l[2]; });
+  CODE[AUTO] = "Autodetect";
+
+  var MAX_BYTES = 450; // the free service accepts about 500 bytes per request
+
+  var $ = function (id) { return document.getElementById(id); };
+  var srcSel = $("srcLang"), tgtSel = $("tgtLang"), input = $("input"), output = $("output");
+  var counter = $("counter"), msg = $("msg"), translateBtn = $("translateBtn"), stopBtn = $("stopBtn");
+  var clearBtn = $("clearBtn"), copyBtn = $("copyBtn"), swapBtn = $("swapBtn"), pron = $("pron");
+
+  var controller = null;
+  var lastText = "";
+
+  function addOption(sel, value, label) {
+    var o = document.createElement("option");
+    o.value = value;
+    o.textContent = label;
+    sel.appendChild(o);
+  }
+
+  addOption(srcSel, AUTO, "Auto-detect language");
+  LANGS.forEach(function (l) { addOption(srcSel, l[0], l[1]); addOption(tgtSel, l[0], l[1]); });
+  srcSel.value = "English";
+  tgtSel.value = "Chinese (Simplified)";
+
+  function showMsg(text) {
+    msg.textContent = text;
+    msg.hidden = !text;
+  }
+
+  // Split "translation \n\n Pronunciation: xxx" into its two parts.
+  function splitOutput(text) {
+    var m = String(text || "").match(/^([\s\S]*?)\n+\s*Pronunciation:\s*([\s\S]*)$/i);
+    if (m) return { tr: m[1].trim(), py: m[2].trim() };
+    return { tr: String(text || ""), py: "" };
+  }
+
+  function setOutput(text, isPlaceholder) {
+    var trEl = $("trText"), pyBox = $("pyBox"), pyEl = $("pyText"), pyLabel = $("pyLabel");
+    output.classList.toggle("placeholder", !!isPlaceholder);
+    if (isPlaceholder) {
+      trEl.textContent = text;
+      pyBox.hidden = true;
+      pyEl.textContent = "";
+      return;
+    }
+    var parts = splitOutput(text);
+    trEl.textContent = parts.tr;
+    pyEl.textContent = parts.py;
+    pyLabel.textContent = "Pinyin";
+    pyBox.hidden = !parts.py;
+  }
+
+  function updateSwap() { swapBtn.disabled = srcSel.value === AUTO; }
+  function updateCounter() { counter.textContent = input.value.length + " / 5000"; }
+
+  function setBusy(busy) {
+    translateBtn.disabled = busy;
+    translateBtn.textContent = busy ? "Translating..." : "Translate";
+    stopBtn.hidden = !busy;
+  }
+
+  function byteLen(s) {
+    try { return new TextEncoder().encode(s).length; } catch (e) { return s.length * 3; }
+  }
+
+  // Break a long line into pieces small enough for one request.
+  function chunkLine(line) {
+    var sentences = line.match(/[^.!?。！？]+[.!?。！？]*\s*/g) || [line];
+    var chunks = [], cur = "";
+    function push() { if (cur.trim()) chunks.push(cur); cur = ""; }
+    sentences.forEach(function (s) {
+      if (byteLen(s) > MAX_BYTES) {
+        push();
+        var piece = "";
+        Array.from(s).forEach(function (ch) {
+          if (byteLen(piece + ch) > MAX_BYTES) { chunks.push(piece); piece = ""; }
+          piece += ch;
+        });
+        cur = piece;
+      } else if (byteLen(cur + s) > MAX_BYTES) {
+        push();
+        cur = s;
+      } else {
+        cur += s;
+      }
+    });
+    push();
+    return chunks;
+  }
+
+  function decodeEntities(s) {
+    var t = document.createElement("textarea");
+    t.innerHTML = s;
+    return t.value;
+  }
+
+  async function translateChunk(q, pair, signal) {
+    var url = "https://api.mymemory.translated.net/get?q=" + encodeURIComponent(q) +
+              "&langpair=" + encodeURIComponent(pair);
+    var res = await fetch(url, { signal: signal });
+    if (!res.ok) throw { code: res.status === 429 ? "quota" : "http" };
+    var data = await res.json();
+    var text = data && data.responseData && data.responseData.translatedText;
+    var status = Number(data && data.responseStatus);
+    if (/MYMEMORY WARNING/i.test(text || "") || status === 429) throw { code: "quota" };
+    if (status !== 200 || typeof text !== "string") throw { code: "api" };
+    return decodeEntities(text);
+  }
+
+  function toPinyin(text) {
+    try {
+      if (window.pinyinPro && typeof window.pinyinPro.pinyin === "function") {
+        return window.pinyinPro.pinyin(text, { toneType: "symbol" });
+      }
+    } catch (e) { /* ignore */ }
+    return "";
+  }
+
+  function errorCopy(code) {
+    switch (code) {
+      case "quota": return "The free daily translation limit was reached. Please try again later.";
+      case "network": return "Could not reach the translation service. Please check your internet connection.";
+      case "http":
+      case "api":
+      default: return "The translation service had a problem. Please try again in a moment.";
+    }
+  }
+
+  async function translate() {
+    var text = input.value.trim();
+    showMsg("");
+    if (!text) {
+      showMsg("Please type some text to translate.");
+      input.focus();
+      return;
+    }
+
+    var tgtCode = CODE[tgtSel.value];
+    var isChineseTarget = tgtCode === "zh-CN" || tgtCode === "zh-TW";
+
+    if (srcSel.value === tgtSel.value) {
+      lastText = text;
+      setOutput(text, false);
+      copyBtn.disabled = false;
+      return;
+    }
+
+    var pair = CODE[srcSel.value] + "|" + tgtCode;
+    setBusy(true);
+    setOutput("Translating...", true);
+    copyBtn.disabled = true;
+    controller = new AbortController();
+
+    var lines = text.split("\n");
+    var done = [];
+    try {
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i];
+        if (!line.trim()) { done.push(""); continue; }
+        var pieces = chunkLine(line), out = "";
+        for (var j = 0; j < pieces.length; j++) {
+          var piece = pieces[j];
+          var lead = piece.match(/^\s*/)[0], trail = piece.match(/\s*$/)[0];
+          var t;
+          try {
+            t = await translateChunk(piece.trim(), pair, controller.signal);
+          } catch (err) {
+            if (err && err.name === "AbortError") throw err;
+            if (err && err.code) throw err;
+            throw { code: "network" };
+          }
+          out += (out && !/\s$/.test(out) ? " " : "") + t;
+          setOutput(done.concat([out]).join("\n"), false);
+        }
+        done.push(out);
+      }
+
+      var result = done.join("\n").trim();
+      var full = result;
+      if (isChineseTarget && pron.checked) {
+        var py = toPinyin(result);
+        if (py) full = result + "\n\nPronunciation: " + py;
+        else showMsg("Pinyin could not be loaded (it needs an internet connection). The translation is still shown.");
+      }
+      lastText = full;
+      setOutput(full, false);
+      copyBtn.disabled = !full;
+    } catch (e) {
+      var partial = done.join("\n").trim();
+      if (e && e.name === "AbortError") {
+        lastText = partial;
+        setOutput(partial || "Stopped.", !partial);
+      } else {
+        lastText = partial;
+        setOutput(partial || "Your translation will appear here.", !partial);
+        showMsg(errorCopy(e && e.code));
+      }
+      copyBtn.disabled = !partial;
+    } finally {
+      controller = null;
+      setBusy(false);
+    }
+  }
+
+  translateBtn.addEventListener("click", translate);
+  stopBtn.addEventListener("click", function () { if (controller) controller.abort(); });
+
+  input.addEventListener("input", updateCounter);
+  input.addEventListener("keydown", function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      e.preventDefault();
+      if (!translateBtn.disabled) translate();
+    }
+  });
+
+  clearBtn.addEventListener("click", function () {
+    if (controller) controller.abort();
+    input.value = "";
+    lastText = "";
+    updateCounter();
+    setOutput("Your translation will appear here.", true);
+    copyBtn.disabled = true;
+    showMsg("");
+    input.focus();
+  });
+
+  srcSel.addEventListener("change", updateSwap);
+
+  swapBtn.addEventListener("click", function () {
+    if (srcSel.value === AUTO) return;
+    var s = srcSel.value;
+    srcSel.value = tgtSel.value;
+    tgtSel.value = s;
+    if (lastText) {
+      input.value = splitOutput(lastText).tr;
+      updateCounter();
+      setOutput("Your translation will appear here.", true);
+      lastText = "";
+      copyBtn.disabled = true;
+    }
+  });
+
+  copyBtn.addEventListener("click", async function () {
+    if (!lastText) return;
+    var ok = false;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(lastText);
+        ok = true;
+      }
+    } catch (e) { /* try fallback */ }
+    if (!ok) {
+      try {
+        var ta = document.createElement("textarea");
+        ta.value = lastText;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+      } catch (e2) { ok = false; }
+    }
+    var old = copyBtn.textContent;
+    copyBtn.textContent = ok ? "Copied!" : "Copy failed";
+    setTimeout(function () { copyBtn.textContent = old; }, 1500);
+  });
+
+  updateSwap();
+  updateCounter();
+})();
+</script>
+</body>
+</html>
